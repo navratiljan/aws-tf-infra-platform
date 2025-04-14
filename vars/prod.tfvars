@@ -5,8 +5,10 @@ postgres_user= "postgresuserprod"
 another_non_secret_variable="prod-somevalue"
 
 # Undestand CPU and memory sizing https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
+enable_compute = true
 ecs_app_config = {
   ens-api = {
+    alb_rule_priority = 110
     container_cpu = 2
     container_memory = 512
     container_port = 80
@@ -22,10 +24,12 @@ ecs_app_config = {
         value = "table-environmental-dataset-fastapi"
       }
     ]
-    ecr_image_tag = "0.0.5"
+    ecr_image_tag = "v1.0.1"
+    force_delete_ecr = false
     sg_inbound_cidr_block = ""
   }
   ens-fe = {
+    alb_rule_priority = 100
     container_cpu = 1
     container_memory = 512
     container_port = 80
@@ -33,7 +37,23 @@ ecs_app_config = {
     container_desired_count = 1
     environment_variables = [
     ]
-    ecr_image_tag = "0.0.1"
+    ecr_image_tag = "v1.0.2"
+    force_delete_ecr = false
     sg_inbound_cidr_block = ""
+  }
+}
+
+s3_bucket_config = {
+  olympic-games-2024-datasets-bronze = {
+    bucket_name = "olympic-games-2024-datasets-bronze"
+    versioning_enabled = false
+  }
+  olympic-games-2024-datasets-silver = {
+    bucket_name = "olympic-games-2024-datasets-silver"
+    versioning_enabled = false
+  }
+  etl-job-scripts = {
+    bucket_name = "olympic-etl-job-scripts"
+    versioning_enabled = true
   }
 }

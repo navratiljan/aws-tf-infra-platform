@@ -4,7 +4,7 @@
 
 ### ECS APPS ###
 module "ecs-apps" {
-  for_each = { for ecs_app, conf in var.ecs_app_config : ecs_app => conf }
+  for_each = var.enable_compute ? { for ecs_app, conf in var.ecs_app_config : ecs_app => conf } : {}
   source   = "./modules/ecs"
 
   infix            = local.infix
@@ -19,6 +19,7 @@ module "ecs-apps" {
   volumes               = try(var.ecs_app_config[each.key].volumes, {})
   environment_variables = try(var.ecs_app_config[each.key].environment_variables, [])
   ecr_image_tag = try(var.ecs_app_config[each.key].ecr_image_tag, "latest")
+  force_delete_ecr = try(var.ecs_app_config[each.key].force_delete_ecr, false)
   
 
   # Deployment strategy behavior
@@ -36,12 +37,13 @@ module "ecs-apps" {
   ## Public expose via ALB (if is_public_service is false, below options are irrelevant)
   is_public_service = true
   aws_route53_zone = aws_route53_zone.primary
-  alb_arn = aws_lb.public-lb.arn
+  alb_listener_arn = aws_lb_listener.front_end_443.arn
+  alb_rule_priority  = try(var.ecs_app_config[each.key].alb_rule_priority, 100)
   public_alb_dnsname = aws_lb.public-lb.dns_name
 
   # IAM
-  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn      = aws_iam_role.ecs_task_role.arn
+  execution_role_arn = module.ecs_task_execution_role.arn 
+  task_role_arn      = module.ecs_task_role.arn
 }
 
 ## VPC ##
@@ -74,4 +76,34 @@ module "vpc" {
   tags = local.tags
 }
 
-## TODO: ALB ##
+module "s3_bucket" {
+  source   = "terraform-aws-modules/s3-bucket/aws"
+  version  = "4.1.1"
+  for_each = { for s3_bucket, conf in var.s3_bucket_config : s3_bucket => conf }
+  bucket                   = var.s3_bucket_config[each.key].bucket_name
+  force_destroy            = try(var.s3_bucket_config.force_destroy, false)
+  object_ownership         = try(var.s3_bucket_config.object_ownership, "BucketOwnerEnforced")
+  versioning = {
+    enabled = var.s3_bucket_config[each.key].versioning_enabled
+  }
+
+  # Predefined bucket policies
+  attach_require_latest_tls_policy= try(var.s3_bucket_config.attach_require_latest_tls_policy, false)
+  attach_deny_insecure_transport_policy= try(var.s3_bucket_config.attach_deny_insecure_transport_policy, false)
+  attach_deny_unencrypted_object_uploads= try(var.s3_bucket_config.attach_deny_unencrypted_object_uploads, false)
+
+  # Set this in case of custom bucket policies
+  policy = try(var.s3_bucket_config.policy, null)
+  attach_policy = try(var.s3_bucket_config.attach_policy, false)
+
+  tags = merge(local.tags, {
+    Name = var.s3_bucket_config[each.key].bucket_name
+  })
+}
+
+## AUTH ##
+#TODO add googlecloud ouath object as well here if google is on
+module "cognito-user-pools" {
+  source = "./modules/cognito-user-pool"
+  frontend_url = "https://ens-fe.navaws.ceacpoc.cloud"
+}

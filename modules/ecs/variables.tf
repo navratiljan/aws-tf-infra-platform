@@ -98,10 +98,9 @@ variable "vpc_subnets" {
   type        = list(string)
 }
 
-variable "alb_arn" {
+variable "alb_listener_arn" {
   description = "ARN of the Application Load Balancer"
   type        = string
-  default = ""
 }
 
 variable "aws_route53_zone" {
@@ -117,4 +116,14 @@ variable "is_public_service" {
 variable "public_alb_dnsname" {
   description = "DNS name of the public ALB"
   type        = string
+}
+
+variable "force_delete_ecr" {
+  description = "Force delete ECR repository"
+  type        = bool
+}
+
+variable "alb_rule_priority" {
+  description = "Priority of the ALB rule"
+  type        = number
 }

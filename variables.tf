@@ -19,7 +19,18 @@ variable "another_non_secret_variable" {
   type        = string
 }
 
+variable "enable_compute" {
+  description = "Enable component"
+  type        = bool
+  default     = true
+}
+
 variable "ecs_app_config" {
+  type    = map(any)
+  default = {}
+}
+
+variable "s3_bucket_config" {
   type    = map(any)
   default = {}
 }

@@ -10,6 +10,7 @@ resource "aws_ecr_repository" "app" {
   image_scanning_configuration {
     scan_on_push = true
   }
+  force_delete = var.force_delete_ecr
 }
 
 ## EC2 ##
@@ -50,6 +51,22 @@ module "aws_ecs_sg" {
 
 }
 
+resource "aws_lb_listener_rule" "static" {
+  listener_arn = var.alb_listener_arn
+  priority     = var.alb_rule_priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs.arn
+  }
+
+  condition {
+    host_header {
+      values = [aws_route53_record.alb_cname.fqdn]
+    }
+  }
+}
+
 resource "aws_lb_target_group" "ecs" {
   name        = "${var.application_name}-ecs-tg"
   port        = 80
@@ -68,18 +85,6 @@ resource "aws_lb_target_group" "ecs" {
   }
 }
 
-resource "aws_lb_listener" "front_end" {
-  load_balancer_arn = var.alb_arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate.cert.arn
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ecs.arn
-  }
-}
 
 ## ECS ##
 resource "aws_ecs_cluster" "cluster" {

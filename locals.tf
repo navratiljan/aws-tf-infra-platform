@@ -15,6 +15,8 @@ locals {
 
   vpc_cidr = "10.0.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  glue_src_path = "../olympics-data-platform-etl/etl-spark-jobs"
 }
 
 # Declare the data source
