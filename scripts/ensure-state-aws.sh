@@ -1,22 +1,6 @@
 #!/bin/bash
 set -euxo pipefail  # Exit script on stderr, unassigned variables, or pipe fails
 
-# Login to Azure
-if [[ -z $AWS_ACCESS_KEY_ID ]]; then 
-    printf "variable AWS_ACCESS_KEY_ID not set" && exit 1
-fi
-if [[ -z $AWS_SECRET_ACCESS_KEY ]]; then 
-    printf "variable AWS_SECRET_ACCESS_KEY not set" && exit 1
-fi
-if [[ -z $AWS_REGION ]]; then 
-    printf "variable  AWS_REGION not set" && exit 1
-fi
-
-# Login to AWS
-aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
-aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
-aws configure set default.region ${AWS_REGION}
-
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 
 # Set variables for naming resources

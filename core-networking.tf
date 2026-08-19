@@ -70,7 +70,7 @@ resource "aws_lb" "public-lb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [module.aws_lb_sg.security_group_id]
-  subnets            = module.vpc.public_subnets
+  subnets            = module.vpc.public_subnet_ids
 
   enable_deletion_protection = false
 
@@ -126,33 +126,24 @@ module "aws_lb_sg" {
   vpc_id      = module.vpc.vpc_id
 
   ## INGRESS ##
-  ingress_with_cidr_blocks = [
-    {
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      description = "Allow HTTP inbound traffic"
-      cidr_blocks = "0.0.0.0/0"
-    },
-    {
+  ingress_rules = {
+    https = {
       from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
-      description = "Allow HTTPS inbound traffic"
-      cidr_blocks = "0.0.0.0/0"
+      ip_protocol = "tcp"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "HTTPS from external"
     }
-  ]
-
-
-  ## EGRESS ##
-  egress_with_cidr_blocks = [
-    {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      description = "Allow all traffic out"
-      cidr_blocks = "0.0.0.0/0"
+    http = {
+      from_port   = 80
+      ip_protocol = "tcp"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "HTTP from external"
     }
-  ]
-
+  }
+  egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+    }
+  }
 }

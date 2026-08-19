@@ -34,7 +34,7 @@ module "ecs-apps" {
   # sg_inbound_cidr_block = var.ecs_app_config[each.key].sg_inbound_cidr_block
   sg_inbound_cidr_block = local.vpc_cidr
   vpc_id                = module.vpc.vpc_id
-  vpc_subnets           = module.vpc.private_subnets
+  vpc_subnets           = module.vpc.private_subnet_ids
 
   ## Public expose via ALB (if is_public_service is false, below options are irrelevant)
   is_public_service = true
@@ -47,41 +47,6 @@ module "ecs-apps" {
   execution_role_arn = module.ecs_task_execution_role.arn 
   task_role_arn      = module.ecs_task_role.arn
 }
-
-########################################################
-######   Optional Compute: EKS Karpenter cluster   #####
-########################################################
-module "eks" {
-  count = var.enable_eks ? 1 : 0
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.0"
-
-  cluster_name    = "${local.infix}-kardem"
-  cluster_version = "1.33"
-
-  bootstrap_self_managed_addons = false
-  cluster_addons = {
-    coredns                = {}
-    eks-pod-identity-agent = {}
-    kube-proxy             = {}
-    vpc-cni                = {}
-    aws-ebs-csi-driver = { 
-      most_recent = true 
-    }
-  }
-  # Optional
-  cluster_endpoint_public_access = true
-
-  # Optional: Adds the current caller identity as an administrator via cluster access entry
-  enable_cluster_creator_admin_permissions = true
-
-  vpc_id                   = module.vpc.vpc_id
-  subnet_ids               = module.vpc.private_subnets
-
-
-  iam_role_additional_policies = { "AmazonEBSCSIDriverPolicy" = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" }
-}
-
 
 ########################################################
 ######                    AUTH                     #####
