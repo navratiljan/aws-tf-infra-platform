@@ -1,3 +1,28 @@
+## VPC ##
+module "vpc" {
+  source = "../aws-tf-infra-modules/vpc"
+  prefix = local.prefix
+  cidr_block = local.vpc_cidr
+  region = var.region
+  enable_public_subnets = true
+  enable_nat_gateway = false
+  enable_flow_logs = true
+}
+resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
+  subnet_ids         = module.vpc.private_subnet_ids
+  transit_gateway_id = "tgw-0050251384cd705da"
+  vpc_id             = module.vpc.vpc_id
+}
+resource "aws_route" "private_tg_attachment" {
+  for_each = module.vpc.private_rt_ids
+  route_table_id = each.value
+  transit_gateway_id = "tgw-03be59961290a2734"
+  destination_cidr_block = "0.0.0.0/0"
+
+  depends_on = [ aws_ec2_transit_gateway_vpc_attachment.this ]
+}
+
+## ROUTE 53 ## 
 resource "aws_route53_zone" "primary" {
   name = "navaws.ceacpoc.cloud"
 }

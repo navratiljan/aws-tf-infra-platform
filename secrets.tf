@@ -4,6 +4,13 @@
 # data "aws_ssm_parameter" "example_secret" {
 #   name = "/${var.project_name}/${var.environment}/example-secret"
 # }
+data "aws_ssm_parameter" "google_client_id" {
+  name = "/${var.project_name}/${var.environment}/google-client-id"
+}
+
+data "aws_ssm_parameter" "google_client_secret" {
+  name = "/${var.project_name}/${var.environment}/google-client-secret"
+}
 
 
 # ### AWS Secrets manager ###

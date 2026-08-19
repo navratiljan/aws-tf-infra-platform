@@ -34,3 +34,33 @@ variable "s3_bucket_config" {
   type    = map(any)
   default = {}
 }
+
+variable "enable_eks" {
+  description = "Enable EKS cluster"
+  type        = bool
+  default     = false
+}
+
+variable "enable_analytics" {
+  description = "Enable analytics"
+  type        = bool
+  default     = false
+}
+
+variable "create_google_provider" {
+  description = "Create Google identity provider"
+  type        = bool
+  default     = true
+}
+
+variable "google_client_id" {
+  description = "Google client ID"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Google client secret"
+  type        = string
+  default     = ""
+}

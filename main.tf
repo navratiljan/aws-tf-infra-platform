@@ -2,7 +2,9 @@
 # Second part of try is the default value if the key is not found in config
 # f.e try(var.ecs_app_config[each.key].container_desired_count, 1) -> means by default it will be 1 desired count
 
-### ECS APPS ###
+########################################################
+######                ECS APPS                     #####
+########################################################
 module "ecs-apps" {
   for_each = var.enable_compute ? { for ecs_app, conf in var.ecs_app_config : ecs_app => conf } : {}
   source   = "./modules/ecs"
@@ -46,64 +48,49 @@ module "ecs-apps" {
   task_role_arn      = module.ecs_task_role.arn
 }
 
-## VPC ##
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 4.0"
+########################################################
+######   Optional Compute: EKS Karpenter cluster   #####
+########################################################
+module "eks" {
+  count = var.enable_eks ? 1 : 0
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
 
-  name = "${local.infix}-vpc"
-  cidr = local.vpc_cidr
+  cluster_name    = "${local.infix}-kardem"
+  cluster_version = "1.33"
 
-  azs             = local.azs
-  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
-  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
-  intra_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 52)]
-
-  enable_nat_gateway     = true
-  single_nat_gateway     = true
-  enable_ipv6            = false
-  create_egress_only_igw = true
-
-
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
+  bootstrap_self_managed_addons = false
+  cluster_addons = {
+    coredns                = {}
+    eks-pod-identity-agent = {}
+    kube-proxy             = {}
+    vpc-cni                = {}
+    aws-ebs-csi-driver = { 
+      most_recent = true 
+    }
   }
+  # Optional
+  cluster_endpoint_public_access = true
 
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
-  }
+  # Optional: Adds the current caller identity as an administrator via cluster access entry
+  enable_cluster_creator_admin_permissions = true
 
-  tags = local.tags
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+
+
+  iam_role_additional_policies = { "AmazonEBSCSIDriverPolicy" = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" }
 }
 
-module "s3_bucket" {
-  source   = "terraform-aws-modules/s3-bucket/aws"
-  version  = "4.1.1"
-  for_each = { for s3_bucket, conf in var.s3_bucket_config : s3_bucket => conf }
-  bucket                   = var.s3_bucket_config[each.key].bucket_name
-  force_destroy            = try(var.s3_bucket_config.force_destroy, false)
-  object_ownership         = try(var.s3_bucket_config.object_ownership, "BucketOwnerEnforced")
-  versioning = {
-    enabled = var.s3_bucket_config[each.key].versioning_enabled
-  }
 
-  # Predefined bucket policies
-  attach_require_latest_tls_policy= try(var.s3_bucket_config.attach_require_latest_tls_policy, false)
-  attach_deny_insecure_transport_policy= try(var.s3_bucket_config.attach_deny_insecure_transport_policy, false)
-  attach_deny_unencrypted_object_uploads= try(var.s3_bucket_config.attach_deny_unencrypted_object_uploads, false)
-
-  # Set this in case of custom bucket policies
-  policy = try(var.s3_bucket_config.policy, null)
-  attach_policy = try(var.s3_bucket_config.attach_policy, false)
-
-  tags = merge(local.tags, {
-    Name = var.s3_bucket_config[each.key].bucket_name
-  })
-}
-
-## AUTH ##
-#TODO add googlecloud ouath object as well here if google is on
+########################################################
+######                    AUTH                     #####
+########################################################
 module "cognito-user-pools" {
   source = "./modules/cognito-user-pool"
   frontend_url = "https://ens-fe.navaws.ceacpoc.cloud"
+
+  create_google_provider = var.create_google_provider
+  google_client_id = var.create_google_provider ? data.aws_ssm_parameter.google_client_id.value : ""
+  google_client_secret = var.create_google_provider ? data.aws_ssm_parameter.google_client_secret.value : ""
 }

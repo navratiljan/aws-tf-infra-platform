@@ -10,3 +10,12 @@ variable "frontend_url" {
 
   
 }
+variable "google_client_id" {
+  description = "Google client ID"
+  type        = string
+}
+
+variable "google_client_secret" {
+  description = "Google client secret"
+  type        = string
+}

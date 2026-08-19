@@ -8,6 +8,7 @@ locals {
   }
 
   infix = "${var.project_name}-${var.environment}"
+  prefix = "${var.project_name}-${var.environment}"
 }
 locals {
   account_id      = data.aws_caller_identity.current.account_id

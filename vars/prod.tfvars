@@ -4,8 +4,11 @@ project_name="exampleproject"
 postgres_user= "postgresuserprod"
 another_non_secret_variable="prod-somevalue"
 
+## FLAGS
+enable_compute = false
+enable_eks = false
+
 # Undestand CPU and memory sizing https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
-enable_compute = true
 ecs_app_config = {
   ens-api = {
     alb_rule_priority = 110

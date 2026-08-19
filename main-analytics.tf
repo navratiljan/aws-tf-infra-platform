@@ -1,4 +1,5 @@
 module "bronze-etl" {
+    count = var.enable_analytics ? 1 : 0
     source = "./modules/glue-etl"
     etl-name = "olympics-2024-bronze"
     s3_path_crawler = "s3://${module.s3_bucket["olympic-games-2024-datasets-bronze"].s3_bucket_id}"
@@ -12,6 +13,7 @@ module "bronze-etl" {
     data_tier = "bronze"
 }
 module "silver-etl" {
+    count = var.enable_analytics ? 1 : 0
     source = "./modules/glue-etl"
     etl-name = "olympics-2024-silver"
     s3_path_crawler = "s3://${module.s3_bucket["olympic-games-2024-datasets-silver"].s3_bucket_id}"
