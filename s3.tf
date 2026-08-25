@@ -1,8 +1,32 @@
 # Commented out example ##
-resource "aws_s3_bucket" "alb_logs" {
-  bucket = "my-elb-tf-test-bucket"
+module "s3_bucket" {
+  #TODO S3 and ECR should be moved to different states
+  source   = "terraform-aws-modules/s3-bucket/aws"
+  version  = "4.1.1"
+  for_each = { for s3_bucket, conf in var.s3_bucket_config : s3_bucket => conf }
+  bucket                   = var.s3_bucket_config[each.key].bucket_name
+  force_destroy            = try(var.s3_bucket_config.force_destroy, false)
+  object_ownership         = try(var.s3_bucket_config.object_ownership, "BucketOwnerEnforced")
+  versioning = {
+    enabled = var.s3_bucket_config[each.key].versioning_enabled
+  }
 
-  force_destroy = true
+  # Predefined bucket policies
+  attach_require_latest_tls_policy= try(var.s3_bucket_config.attach_require_latest_tls_policy, false)
+  attach_deny_insecure_transport_policy= try(var.s3_bucket_config.attach_deny_insecure_transport_policy, false)
+  attach_deny_unencrypted_object_uploads= try(var.s3_bucket_config.attach_deny_unencrypted_object_uploads, false)
+
+}
+
+#TODO convert this to the same logic as other S3 buckets
+resource "aws_s3_bucket" "alb_logs" {
+  bucket = "alb-logs-${local.infix}"
+
+  force_destroy = false
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs" {

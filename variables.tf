@@ -18,8 +18,52 @@ variable "another_non_secret_variable" {
   description = "Dummy non-secret variable"
   type        = string
 }
+variable "base_domain_name" {
+  description = "Base domain name"
+  type        = string
+}
+variable "enable_ecs_apps" {
+  description = "Enable ECS apps"
+  type        = bool
+  default     = true
+}
 
 variable "ecs_app_config" {
   type    = map(any)
   default = {}
+}
+
+variable "s3_bucket_config" {
+  type    = map(any)
+  default = {}
+}
+
+variable "enable_eks" {
+  description = "Enable EKS cluster"
+  type        = bool
+  default     = false
+}
+
+variable "enable_analytics" {
+  description = "Enable analytics"
+  type        = bool
+  default     = false
+}
+
+variable "create_google_provider" {
+  description = "Create Google identity provider"
+  type        = bool
+  default     = true
+}
+
+variable "google_client_id" {
+  description = "Google client ID"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Google client secret"
+  type        = string
+  default     = ""
 }

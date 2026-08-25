@@ -2,9 +2,11 @@
 # Second part of try is the default value if the key is not found in config
 # f.e try(var.ecs_app_config[each.key].container_desired_count, 1) -> means by default it will be 1 desired count
 
-### ECS APPS ###
+########################################################
+######                ECS APPS                     #####
+########################################################
 module "ecs-apps" {
-  for_each = { for ecs_app, conf in var.ecs_app_config : ecs_app => conf }
+  for_each = var.enable_ecs_apps ? { for ecs_app, conf in var.ecs_app_config : ecs_app => conf } : {}
   source   = "./modules/ecs"
 
   infix            = local.infix
@@ -19,6 +21,7 @@ module "ecs-apps" {
   volumes               = try(var.ecs_app_config[each.key].volumes, {})
   environment_variables = try(var.ecs_app_config[each.key].environment_variables, [])
   ecr_image_tag = try(var.ecs_app_config[each.key].ecr_image_tag, "latest")
+  force_delete_ecr = try(var.ecs_app_config[each.key].force_delete_ecr, false)
   
 
   # Deployment strategy behavior
@@ -31,47 +34,29 @@ module "ecs-apps" {
   # sg_inbound_cidr_block = var.ecs_app_config[each.key].sg_inbound_cidr_block
   sg_inbound_cidr_block = local.vpc_cidr
   vpc_id                = module.vpc.vpc_id
-  vpc_subnets           = module.vpc.private_subnets
+  vpc_subnets           = module.vpc.private_subnet_ids
 
   ## Public expose via ALB (if is_public_service is false, below options are irrelevant)
   is_public_service = true
-  aws_route53_zone = aws_route53_zone.primary
-  alb_arn = aws_lb.public-lb.arn
+  aws_route53_zone = data.aws_route53_zone.primary
+  alb_listener_arn = aws_lb_listener.front_end_443.arn
+  alb_rule_priority  = try(var.ecs_app_config[each.key].alb_rule_priority, 100)
   public_alb_dnsname = aws_lb.public-lb.dns_name
 
   # IAM
-  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn      = aws_iam_role.ecs_task_role.arn
+  execution_role_arn = module.ecs_task_execution_role.arn 
+  task_role_arn      = module.ecs_task_role.arn
 }
 
-## VPC ##
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 4.0"
+########################################################
+######                    AUTH                     #####
+########################################################
+# module "cognito-user-pools" {
+#   depends_on = [ module.ecs-apps ]
+#   source = "./modules/cognito-user-pool"
+#   frontend_url = "https://${module.ecs-apps["ens-fe"].domain_name}"
 
-  name = "${local.infix}-vpc"
-  cidr = local.vpc_cidr
-
-  azs             = local.azs
-  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
-  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
-  intra_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 52)]
-
-  enable_nat_gateway     = true
-  single_nat_gateway     = true
-  enable_ipv6            = false
-  create_egress_only_igw = true
-
-
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
-  }
-
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
-  }
-
-  tags = local.tags
-}
-
-## TODO: ALB ##
+#   create_google_provider = var.create_google_provider
+#   google_client_id = var.create_google_provider ? data.aws_ssm_parameter.google_client_id.value : ""
+#   google_client_secret = var.create_google_provider ? data.aws_ssm_parameter.google_client_secret.value : ""
+# }

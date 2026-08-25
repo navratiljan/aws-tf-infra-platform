@@ -1,8 +1,12 @@
-# ## Commented out example ##
-
-## ECS Task execution role
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "ecs-task-execution-role"
+# +----------------------------------------------------------+
+# |                     ECS APPS                             |
+# +----------------------------------------------------------+
+module "ecs_task_execution_role" {
+  source = "./modules/iam"
+  iam_role_name = "ecs-task-execution-role"
+  policy_attachments = [
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+    ]
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -19,15 +23,14 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-
-## ECS Task role"
-resource "aws_iam_role" "ecs_task_role" {
-  name               = "ecs-task-role"
+module "ecs_task_role" {
+  source = "./modules/iam"
+  iam_role_name = "ecs-task-role"
+  policy_attachments = [
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+    ]
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -40,15 +43,10 @@ resource "aws_iam_role" "ecs_task_role" {
       "Action": "sts:AssumeRole"
     }
   ]
-} 
-EOF
 }
-
-
-resource "aws_iam_policy" "ecspolicy" {
-  name        = "ecs-task-custom-policy"
-  description = "ECS Task Policy"
-  policy      = <<EOF
+EOF
+  custom_policies = {
+   ecs-task-custom-policy = <<EOF
 {
    "Version": "2012-10-17",
    "Statement": [
@@ -70,31 +68,7 @@ resource "aws_iam_policy" "ecspolicy" {
    ]
 }
 EOF
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_exec" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-resource "aws_iam_role_policy_attachment" "ecs_task_role_policy" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.ecspolicy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_dynamo" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
-}
-resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_s3" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-}
-
-
-resource "aws_iam_policy" "quicksight_policy" {
-  name        = "ecs-fe-quicksight-policy"
-  description = "ECS Task Policy"
-  policy      = <<EOF
+  ecs-fe-quicksight-policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -116,17 +90,15 @@ resource "aws_iam_policy" "quicksight_policy" {
     ]
 }
 EOF
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "quicksight_policy_attachment" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.quicksight_policy.arn
-}
-
-
-## Glue Catalog Table ## 
-resource "aws_iam_role" "glue_data_quality_role" {
-  name               = "glue-data-quality-role"
+# +----------------------------------------------------------+
+# |                          GLUE                            |                             
+# +----------------------------------------------------------+
+module "glue_data_quality_role" {
+  source = "./modules/iam"
+  iam_role_name = "glue-data-quality-role"
   assume_role_policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -148,12 +120,8 @@ resource "aws_iam_role" "glue_data_quality_role" {
     ]
 } 
 EOF
-}
-
-
-resource "aws_iam_policy" "glue_data_quality_policy" {
-  name        = "glue-data-quality-policy"
-  policy      = <<EOF
+  custom_policies = {
+    glue-data-quality-policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -206,8 +174,90 @@ resource "aws_iam_policy" "glue_data_quality_policy" {
 }
 EOF
 }
+}
 
-resource "aws_iam_role_policy_attachment" "glue_data_quality_policy_attachment" {
-  role       = aws_iam_role.glue_data_quality_role.name
-  policy_arn = aws_iam_policy.glue_data_quality_policy.arn
+module "glue_data_crawler_role" {
+  source = "./modules/iam"
+  iam_role_name = "glue-data-crawler-role"
+  assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "glue.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+  policy_attachments = [ 
+    "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole",
+    "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  ]
+
+#   custom_policies = {
+#     "AWSGlueServiceRole-CrawlerOlympicData-s3Policy" = <<EOF
+# {
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Effect": "Allow",
+#             "Action": [
+#                 "s3:GetObject",
+#                 "s3:PutObject"
+#             ],
+#             "Resource": [
+#                 "${module.s3_bucket.bucket_arn}*"
+#             ]
+#         }
+#     ]
+# }
+# EOF
+}
+
+module "glue_etl_jobs_role" {
+  source = "./modules/iam"
+  iam_role_name = "glue-etl-jobs-role"
+  assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "glue.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+  policy_attachments = [ 
+    "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole",
+    "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  ]
+
+#   custom_policies = {
+#     "AWSGlueServiceRole-CrawlerOlympicData-s3Policy" = <<EOF
+# {
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Effect": "Allow",
+#             "Action": [
+#                 "s3:GetObject",
+#                 "s3:PutObject"
+#             ],
+#             "Resource": [
+#                 "${module.s3_bucket.bucket_arn}*"
+#             ]
+#         }
+#     ]
+# }
+# EOF
 }

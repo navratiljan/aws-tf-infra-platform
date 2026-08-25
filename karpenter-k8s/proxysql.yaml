@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: proxysql
+  namespace: default
+spec:
+  containers:
+    - name: proxysql
+      image: proxysql/proxysql:latest
