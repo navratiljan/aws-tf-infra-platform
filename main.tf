@@ -6,7 +6,7 @@
 ######                ECS APPS                     #####
 ########################################################
 module "ecs-apps" {
-  for_each = var.enable_compute ? { for ecs_app, conf in var.ecs_app_config : ecs_app => conf } : {}
+  for_each = var.enable_ecs_apps ? { for ecs_app, conf in var.ecs_app_config : ecs_app => conf } : {}
   source   = "./modules/ecs"
 
   infix            = local.infix
@@ -38,7 +38,7 @@ module "ecs-apps" {
 
   ## Public expose via ALB (if is_public_service is false, below options are irrelevant)
   is_public_service = true
-  aws_route53_zone = aws_route53_zone.primary
+  aws_route53_zone = data.aws_route53_zone.primary
   alb_listener_arn = aws_lb_listener.front_end_443.arn
   alb_rule_priority  = try(var.ecs_app_config[each.key].alb_rule_priority, 100)
   public_alb_dnsname = aws_lb.public-lb.dns_name
@@ -51,11 +51,12 @@ module "ecs-apps" {
 ########################################################
 ######                    AUTH                     #####
 ########################################################
-module "cognito-user-pools" {
-  source = "./modules/cognito-user-pool"
-  frontend_url = "https://ens-fe.navaws.ceacpoc.cloud"
+# module "cognito-user-pools" {
+#   depends_on = [ module.ecs-apps ]
+#   source = "./modules/cognito-user-pool"
+#   frontend_url = "https://${module.ecs-apps["ens-fe"].domain_name}"
 
-  create_google_provider = var.create_google_provider
-  google_client_id = var.create_google_provider ? data.aws_ssm_parameter.google_client_id.value : ""
-  google_client_secret = var.create_google_provider ? data.aws_ssm_parameter.google_client_secret.value : ""
-}
+#   create_google_provider = var.create_google_provider
+#   google_client_id = var.create_google_provider ? data.aws_ssm_parameter.google_client_id.value : ""
+#   google_client_secret = var.create_google_provider ? data.aws_ssm_parameter.google_client_secret.value : ""
+# }

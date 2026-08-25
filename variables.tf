@@ -18,9 +18,12 @@ variable "another_non_secret_variable" {
   description = "Dummy non-secret variable"
   type        = string
 }
-
-variable "enable_compute" {
-  description = "Enable component"
+variable "base_domain_name" {
+  description = "Base domain name"
+  type        = string
+}
+variable "enable_ecs_apps" {
+  description = "Enable ECS apps"
   type        = bool
   default     = true
 }

@@ -16,13 +16,11 @@ module "s3_bucket" {
   attach_deny_insecure_transport_policy= try(var.s3_bucket_config.attach_deny_insecure_transport_policy, false)
   attach_deny_unencrypted_object_uploads= try(var.s3_bucket_config.attach_deny_unencrypted_object_uploads, false)
 
-  # Set this in case of custom bucket policies
-  tags = merge(local.tags, {
-    Name = var.s3_bucket_config[each.key].bucket_name
-  })
 }
+
+#TODO convert this to the same logic as other S3 buckets
 resource "aws_s3_bucket" "alb_logs" {
-  bucket = "my-elb-tf-test-bucket"
+  bucket = "alb-logs-${local.infix}"
 
   force_destroy = false
 

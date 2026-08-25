@@ -1,13 +1,17 @@
 region="eu-central-1"
 environment="prod"
-project_name="exampleproject"
+project_name="core-infra-platform"
 postgres_user= "postgresuserprod"
 another_non_secret_variable="prod-somevalue"
+base_domain_name="navawstech.com"
+
 
 ## FLAGS
-enable_compute = false
+enable_ecs_apps = false
 enable_eks = false
+enable_analytics = false
 
+## ECS APPS
 # Undestand CPU and memory sizing https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 ecs_app_config = {
   ens-api = {
@@ -46,17 +50,18 @@ ecs_app_config = {
   }
 }
 
+## S3 BUCKETS
 s3_bucket_config = {
   olympic-games-2024-datasets-bronze = {
-    bucket_name = "olympic-games-2024-datasets-bronze"
+    bucket_name = "navaws-prod-olympic-games-2024-datasets-bronze"
     versioning_enabled = false
   }
   olympic-games-2024-datasets-silver = {
-    bucket_name = "olympic-games-2024-datasets-silver"
+    bucket_name = "navaws-prod-olympic-games-2024-datasets-silver"
     versioning_enabled = false
   }
   etl-job-scripts = {
-    bucket_name = "olympic-etl-job-scripts"
+    bucket_name = "navaws-prod-olympic-etl-job-scripts"
     versioning_enabled = true
   }
 }

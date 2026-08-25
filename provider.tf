@@ -15,6 +15,10 @@ terraform {
 provider "aws" {
   region = var.region
 
+  ignore_tags {
+    key_prefixes = [""] # Ignore all tags since they are managed externally
+  }
+
   # Set default tags for all resources
   default_tags {
     tags = local.tags

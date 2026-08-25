@@ -18,6 +18,7 @@ locals {
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
   glue_src_path = "../olympics-data-platform-etl/etl-spark-jobs"
+  ssm_project_base_path = "/${var.project_name}/${var.environment}"
 }
 
 # Declare the data source

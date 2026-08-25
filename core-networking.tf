@@ -16,18 +16,19 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 resource "aws_route" "private_tg_attachment" {
   for_each = module.vpc.private_rt_ids
   route_table_id = each.value
-  transit_gateway_id = "tgw-03be59961290a2734"
+  transit_gateway_id = "tgw-0050251384cd705da"
   destination_cidr_block = "0.0.0.0/0"
 
   depends_on = [ aws_ec2_transit_gateway_vpc_attachment.this ]
 }
 
 ## ROUTE 53 ## 
-resource "aws_route53_zone" "primary" {
-  name = "navaws.ceacpoc.cloud"
+
+data "aws_route53_zone" "primary" {
+  name = var.base_domain_name
 }
 resource "aws_route53_record" "default_certificate" {
-  zone_id = aws_route53_zone.primary.zone_id
+  zone_id = data.aws_route53_zone.primary.zone_id
   name    = "default"
   type    = "CNAME"
   ttl     = 10
@@ -36,7 +37,7 @@ resource "aws_route53_record" "default_certificate" {
   records = [aws_lb.public-lb.dns_name]
 }
 resource "aws_acm_certificate" "default" {
-  domain_name       = "${aws_route53_record.default_certificate.name}.${aws_route53_zone.primary.name}"
+  domain_name       = "${aws_route53_record.default_certificate.name}.${data.aws_route53_zone.primary.name}"
   validation_method = "DNS"
 
   lifecycle {
@@ -57,7 +58,7 @@ resource "aws_route53_record" "validation" {
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
-  zone_id         = aws_route53_zone.primary.zone_id
+  zone_id         = data.aws_route53_zone.primary.zone_id
 }
 
 resource "aws_acm_certificate_validation" "validation" {
@@ -69,7 +70,7 @@ resource "aws_lb" "public-lb" {
   name               = "${local.infix}-ecs-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [module.aws_lb_sg.security_group_id]
+  security_groups    = [module.aws_lb_sg.id]
   subnets            = module.vpc.public_subnet_ids
 
   enable_deletion_protection = false
@@ -78,10 +79,6 @@ resource "aws_lb" "public-lb" {
     bucket  = aws_s3_bucket.alb_logs.id
     prefix  = "logselb"
     enabled = true
-  }
-
-  tags = {
-    Environment = "production"
   }
 }
 resource "aws_lb_listener" "front_end_80" {
